@@ -1,6 +1,6 @@
-# Dispatch Pendency
+# Lenskart Live Dispatch Monitor
 
-Live warehouse packing and bin workload dashboard for facility NXS2.
+Live warehouse packing and bin workload dashboard for Lenskart facility NXS2.
 
 ## GitHub Pages
 

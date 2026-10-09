@@ -27,7 +27,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .app-shell { min-height: 100vh; }
 .topbar { display: flex; min-height: 76px; padding: 0 max(28px, calc((100vw - 1540px) / 2)); align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: #101c2d; gap: 24px; }
 .brand { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; }
-.brand-mark { display: grid; width: 37px; height: 37px; place-items: center; border: 1px solid #32685f; border-radius: 7px; color: var(--accent); font-size: 19px; font-weight: 800; }
+.brand-logo { display: block; width: 54px; height: 46px; flex: 0 0 auto; border-radius: 3px; object-fit: contain; }
 .brand-copy { display: grid; gap: 5px; }
 .brand-copy strong { font-size: 12px; letter-spacing: .105em; }
 .brand-copy span { color: var(--muted); font-size: 9px; letter-spacing: .13em; }
@@ -194,7 +194,7 @@ h1 { margin-bottom: 7px; font-size: clamp(25px, 2.4vw, 34px); letter-spacing: -.
 @media (max-width: 720px) {
   body { min-width: 320px; }
   .topbar { min-height: 66px; padding: 0 14px; }
-  .brand-mark { width: 31px; height: 31px; }
+  .brand-logo { width: 46px; height: 38px; }
   .brand-copy strong { max-width: 172px; font-size: 9px; }
   .brand-copy span { font-size: 7px; }
   .topbar-actions { gap: 6px; }
