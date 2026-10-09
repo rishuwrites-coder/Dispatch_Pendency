@@ -2,6 +2,7 @@
 
 Live warehouse packing and bin workload dashboard for Lenskart facility NXS2.
 
+Live dashboard: https://rishuwrites-coder.github.io/Dispatch_Pendency/
 ## GitHub Pages
 
 The dashboard is a static site. In the repository's **Settings → Pages**, publish from the `main` branch and the `/ (root)` folder. The dashboard entry point is `index.html`.
