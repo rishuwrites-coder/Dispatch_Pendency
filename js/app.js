@@ -10,6 +10,20 @@
 
   const SOURCE_HEADERS = ["Shipping Package ID", "Shipping Provider Code", "Store Code", "Bin Code"];
   const FIELD_KEYS = ["shippingPackageId", "shippingProviderCode", "storeCode", "binCode"];
+  const BIN_RANGE_GROUPS = [
+    { label: "NDD1-NDD175", prefix: "NDD", min: 1, max: 175 },
+    { label: "NDD176-NDD355", prefix: "NDD", min: 176, max: 355 },
+    { label: "NDD356-NDD525", prefix: "NDD", min: 356, max: 525 },
+    { label: "NDD526-NDD698", prefix: "NDD", min: 526, max: 698 },
+    { label: "NDD699-NDD868", prefix: "NDD", min: 699, max: 868 },
+    { label: "NDD869-NDD1008", prefix: "NDD", min: 869, max: 1008 },
+    { label: "NDD1009-NDD1188", prefix: "NDD", min: 1009, max: 1188 },
+    { label: "NDD1189-NDD END", prefix: "NDD", min: 1189, max: Infinity },
+    { label: "P1-P195", prefix: "P", min: 1, max: 195 },
+    { label: "P196-PEND", prefix: "P", min: 196, max: Infinity },
+    { label: "GP1-GP263", prefix: "GP", min: 1, max: 263 },
+    { label: "GP264-GP END", prefix: "GP", min: 264, max: Infinity }
+  ];
   const FILTERS = [
     { key: "bin", label: "BIN", element: "bin-filter", field: "binCode" },
     { key: "store", label: "STORE", element: "store-filter", field: "storeCode" },
@@ -22,7 +36,7 @@
     loadedAt: null,
     connection: "loading",
     error: "",
-    filters: { bin: "", binPrefix: "", store: "", provider: "", search: "" },
+    filters: { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "" },
     sort: { field: "", direction: 1 },
     page: 1,
     pageSize: CONFIG.DEFAULT_PAGE_SIZE,
@@ -44,6 +58,23 @@
     if (!binCode) return "Missing bin";
     const match = binCode.match(/^[A-Za-z]+/);
     return match ? match[0].toUpperCase() : "Other / numeric";
+  }
+
+  function getBinGroup(binCode) {
+    if (!binCode) return "Missing bin";
+    const normalized = binCode.toUpperCase().replace(/\s+/g, "");
+    for (const prefix of ["NDD", "GP", "P"]) {
+      const match = normalized.match(new RegExp(`^${prefix}(\\d+)$`));
+      if (!match) continue;
+      const number = Number(match[1]);
+      const range = BIN_RANGE_GROUPS.find((group) =>
+        group.prefix === prefix && number >= group.min && number <= group.max);
+      return range ? range.label : `Other ${prefix} bin`;
+    }
+    const prefix = getBinPrefix(binCode);
+    if (["S", "V", "D"].includes(prefix)) return `${prefix} whole`;
+    if (prefix === "Missing bin" || prefix === "Other / numeric") return prefix;
+    return `Other prefix: ${prefix}`;
   }
 
   function readField(record, index, key) {
@@ -68,6 +99,7 @@
           storeCode: "",
           binCode: "",
           binPrefix: "Missing bin",
+          binGroup: "Missing bin",
           invalid: true
         };
       }
@@ -89,6 +121,7 @@
         storeCode: values[2],
         binCode: values[3],
         binPrefix: getBinPrefix(values[3]),
+        binGroup: getBinGroup(values[3]),
         invalid
       };
     });
@@ -200,11 +233,12 @@
   }
 
   function applyFilters() {
-    const { bin, binPrefix, store, provider, search } = state.filters;
+    const { bin, binPrefix, binGroup, store, provider, search } = state.filters;
     const needle = search.trim().toLowerCase();
     const rows = state.rows.filter((row) =>
       (!bin || row.binCode === bin) &&
       (!binPrefix || row.binPrefix === binPrefix) &&
+      (!binGroup || row.binGroup === binGroup) &&
       (!store || row.storeCode === store) &&
       (!provider || row.shippingProviderCode === provider) &&
       (!needle || row.shippingPackageId.toLowerCase().includes(needle))
@@ -248,6 +282,9 @@
       `<span class="filter-chip">${label}: ${esc(state.filters[key])}<button type="button" data-remove-filter="${key}" aria-label="Remove ${label.toLowerCase()} filter">×</button></span>`);
     if (state.filters.binPrefix) {
       chips.push(`<span class="filter-chip">BIN PREFIX: ${esc(state.filters.binPrefix)}<button type="button" data-remove-filter="binPrefix" aria-label="Remove bin prefix filter">×</button></span>`);
+    }
+    if (state.filters.binGroup) {
+      chips.push(`<span class="filter-chip">BIN RANGE: ${esc(state.filters.binGroup)}<button type="button" data-remove-filter="binGroup" aria-label="Remove bin range filter">×</button></span>`);
     }
     if (state.filters.search) {
       chips.push(`<span class="filter-chip">SEARCH: ${esc(state.filters.search)}<button type="button" data-remove-filter="search" aria-label="Remove shipment search">×</button></span>`);
@@ -320,6 +357,44 @@
       </tr>`;
     }).join("") : '<tr><td class="prefix-empty" colspan="5">No bin workload matches the current filters.</td></tr>';
     $("prefix-summary").textContent = `${formatter.format(entries.length)} prefix groups · ${formatter.format(rows.length)} shipments in this selection`;
+  }
+
+  function renderBinRangeSection(rows) {
+    const groups = new Map();
+    for (const { label } of BIN_RANGE_GROUPS) {
+      groups.set(label, { shipments: 0, bins: new Map() });
+    }
+    for (const row of rows) {
+      let group = groups.get(row.binGroup);
+      if (!group) {
+        group = { shipments: 0, bins: new Map() };
+        groups.set(row.binGroup, group);
+      }
+      group.shipments += 1;
+      if (row.binCode) group.bins.set(row.binCode, (group.bins.get(row.binCode) || 0) + 1);
+    }
+    const entries = [...groups.entries()].sort((a, b) => {
+      const aIndex = BIN_RANGE_GROUPS.findIndex((group) => group.label === a[0]);
+      const bIndex = BIN_RANGE_GROUPS.findIndex((group) => group.label === b[0]);
+      if (aIndex !== -1 || bIndex !== -1) {
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      }
+      return b[1].shipments - a[1].shipments || a[0].localeCompare(b[0]);
+    });
+    $("bin-range-rows").innerHTML = entries.map(([label, group]) => {
+      const busiest = descendingEntries(group.bins)[0];
+      const share = rows.length ? group.shipments / rows.length * 100 : 0;
+      return `<tr class="${state.filters.binGroup === label ? "is-selected" : ""}">
+        <td><button class="prefix-filter-button" type="button" data-chart-filter="binGroup" data-value="${esc(label)}" aria-label="Filter by bin range ${esc(label)}">${esc(label)}</button></td>
+        <td class="prefix-number">${formatter.format(group.shipments)}</td>
+        <td class="prefix-share"><span class="prefix-share-track"><i style="width:${share.toFixed(2)}%"></i></span><span>${share.toFixed(1)}%</span></td>
+        <td>${formatter.format(group.bins.size)}</td>
+        <td>${busiest ? `<button class="prefix-busiest-button" type="button" data-chart-filter="bin" data-value="${esc(busiest[0])}" title="Filter by ${esc(busiest[0])}">${esc(busiest[0])} <span>${formatter.format(busiest[1])}</span></button>` : '<span class="missing-prefix-value">—</span>'}</td>
+      </tr>`;
+    }).join("");
+    $("bin-range-summary").textContent = `${formatter.format(entries.length)} bin range groups · ${formatter.format(rows.length)} shipments in this selection`;
   }
 
   function renderStoreSection(rows) {
@@ -444,6 +519,7 @@
     renderKpis(rows);
     renderBinSection(rows);
     renderPrefixSection(rows);
+    renderBinRangeSection(rows);
     renderStoreSection(rows);
     renderProviderSection(rows);
     renderHeatmap(rows);
@@ -530,7 +606,7 @@
   }
 
   function clearFilters() {
-    state.filters = { bin: "", binPrefix: "", store: "", provider: "", search: "" };
+    state.filters = { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "" };
     $("bin-filter").value = "";
     $("store-filter").value = "";
     $("provider-filter").value = "";
@@ -603,7 +679,7 @@
       const filterButton = event.target.closest("[data-chart-filter]");
       if (filterButton) {
         const kind = filterButton.dataset.chartFilter;
-        const key = kind === "bin" ? "bin" : kind === "store" ? "store" : kind === "prefix" ? "binPrefix" : "provider";
+        const key = kind === "bin" ? "bin" : kind === "store" ? "store" : kind === "prefix" ? "binPrefix" : kind === "binGroup" ? "binGroup" : "provider";
         const element = key === "bin" ? "bin-filter" : key === "store" ? "store-filter" : key === "provider" ? "provider-filter" : null;
         const value = state.filters[key] === filterButton.dataset.value ? "" : filterButton.dataset.value;
         if (element) $(element).value = value;

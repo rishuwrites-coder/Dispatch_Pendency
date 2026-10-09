@@ -134,6 +134,23 @@
           <div class="panel-footer"><span id="prefix-summary">—</span><span>Prefix is derived from the actual Bin Code field</span></div>
         </section>
 
+        <section class="panel prefix-panel" aria-labelledby="bin-range-title">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">03 / BIN RANGE GROUPING</p>
+              <h2 id="bin-range-title">Workload by bin range</h2>
+              <p class="panel-subtitle">NDD, P and GP bins follow the requested numeric ranges. S, V and D bins are grouped as a whole prefix.</p>
+            </div>
+          </div>
+          <div class="prefix-table-scroll">
+            <table class="prefix-table">
+              <thead><tr><th scope="col">BIN RANGE / GROUP</th><th scope="col">SHIPMENTS</th><th scope="col">SHARE</th><th scope="col">UNIQUE BIN CODES</th><th scope="col">BUSIEST BIN</th></tr></thead>
+              <tbody id="bin-range-rows"></tbody>
+            </table>
+          </div>
+          <div class="panel-footer"><span id="bin-range-summary">—</span><span>Range boundaries are inclusive</span></div>
+        </section>
+
         <div class="analysis-grid">
           <section class="panel" aria-labelledby="store-title">
             <div class="panel-heading panel-heading-compact">
