@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101c2d">
+  <meta name="description" content="Live packing and bin workload monitor for NEXS facility NXS2.">
+  <title>Packing / Bin Code Monitor · NXS2</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Packing and bin code monitor home">
+        <span class="brand-mark" aria-hidden="true">N</span>
+        <span class="brand-copy">
+          <strong>PACKING / BIN CODE MONITOR</strong>
+          <span>WAREHOUSE OPERATIONS <i></i> FACILITY NXS2</span>
+        </span>
+      </a>
+      <div class="topbar-actions">
+        <div class="connection-pill" id="connection-pill" data-state="loading" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span><span id="connection-label">CONNECTING</span>
+        </div>
+        <button class="button button-secondary" id="refresh-button" type="button">
+          <span class="refresh-icon" aria-hidden="true">↻</span> Refresh now
+        </button>
+        <button class="button button-primary" id="download-all" type="button">Download CSV</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro-row" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">LIVE OPERATIONS <span class="eyebrow-line"></span> PACKING QUEUE</p>
+          <h1 id="page-title">Packing workload</h1>
+          <p class="intro-copy">A current view of shipments waiting across bins, stores and shipping providers.</p>
+        </div>
+        <div class="refresh-meta">
+          <div class="updated-line"><span class="meta-label">LAST UPDATED</span><strong id="last-updated">Waiting for data</strong></div>
+          <div class="updated-line"><span class="meta-label">NEXT REFRESH</span><strong id="countdown">—</strong></div>
+        </div>
+      </section>
+
+      <section class="filter-panel" aria-label="Global shipment filters">
+        <div class="filter-heading">
+          <div><span class="section-kicker">GLOBAL FILTERS</span><span class="filter-hint">Selections apply across the whole dashboard</span></div>
+          <button class="text-button" id="clear-filters" type="button">Clear all filters</button>
+        </div>
+        <div class="filter-controls">
+          <label class="filter-field"><span>BIN CODE</span><select id="bin-filter"><option value="">All bins</option></select></label>
+          <label class="filter-field"><span>STORE CODE</span><select id="store-filter"><option value="">All stores</option></select></label>
+          <label class="filter-field"><span>SHIPPING PROVIDER</span><select id="provider-filter"><option value="">All providers</option></select></label>
+          <label class="filter-field filter-search"><span>SHIPMENT SEARCH</span><input id="search-filter" type="search" placeholder="Search package ID…" autocomplete="off"></label>
+        </div>
+        <div class="active-filters" id="active-filters" aria-live="polite"></div>
+      </section>
+
+      <div class="notice-bar" id="notice-bar" hidden role="status">
+        <span class="notice-symbol" aria-hidden="true">!</span>
+        <div><strong id="notice-title"></strong><span id="notice-message"></span></div>
+        <button class="text-button" id="retry-button" type="button">Retry</button>
+      </div>
+      <div class="state-card" id="state-card" hidden role="status" aria-live="polite">
+        <div class="state-loader" aria-hidden="true"></div>
+        <h2 id="state-title">Connecting to the live sheet</h2>
+        <p id="state-message">Loading the latest PackingPrintList snapshot.</p>
+        <button class="button button-primary" id="state-retry" type="button" hidden>Retry now</button>
+      </div>
+
+      <div id="dashboard-content" aria-busy="true">
+        <section class="kpi-grid" aria-label="Packing summary">
+          <article class="kpi-card kpi-primary">
+            <span class="kpi-label">PACKING SHIPMENTS</span>
+            <strong class="kpi-value" id="kpi-shipments">—</strong>
+            <span class="kpi-foot" id="kpi-shipments-foot">In current selection</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">ACTIVE BIN CODES</span>
+            <strong class="kpi-value" id="kpi-bins">—</strong>
+            <span class="kpi-foot">With shipments in selection</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">STORES IN WORKLOAD</span>
+            <strong class="kpi-value" id="kpi-stores">—</strong>
+            <span class="kpi-foot">With shipments in selection</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">SHIPPING PROVIDERS</span>
+            <strong class="kpi-value" id="kpi-providers">—</strong>
+            <span class="kpi-foot">With shipments in selection</span>
+          </article>
+          <article class="kpi-card kpi-top-bin">
+            <span class="kpi-label">BUSIEST BIN</span>
+            <strong class="kpi-value kpi-value-text" id="kpi-top-bin">—</strong>
+            <span class="kpi-foot"><b id="kpi-top-bin-count">—</b> shipments in selection</span>
+          </article>
+        </section>
+
+        <section class="panel bin-panel" aria-labelledby="bin-title">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">01 / PRIMARY WORKLOAD</p>
+              <h2 id="bin-title">Bin code workload</h2>
+              <p class="panel-subtitle">Where is the packing queue concentrated right now?</p>
+            </div>
+            <label class="compact-select"><span>SHOW</span><select id="bin-limit"><option value="10">Top 10</option><option value="20" selected>Top 20</option><option value="50">Top 50</option><option value="all">All bins</option></select></label>
+          </div>
+          <div class="bin-chart-wrap">
+            <div class="chart-legend"><span><i class="legend-swatch swatch-main"></i> Shipments by bin</span><span class="chart-note">Select a bin to filter the dashboard</span></div>
+            <div id="bin-chart" class="bar-chart bin-chart" role="list" aria-label="Packing shipment count by bin"></div>
+          </div>
+          <div class="panel-footer">
+            <span id="bin-chart-summary">—</span>
+            <span class="current-snapshot"><i></i> CURRENT SNAPSHOT · NOT A TREND</span>
+          </div>
+        </section>
+
+        <div class="analysis-grid">
+          <section class="panel" aria-labelledby="store-title">
+            <div class="panel-heading panel-heading-compact">
+              <div><p class="section-kicker">02 / DISTRIBUTION</p><h2 id="store-title">Store workload</h2><p class="panel-subtitle">Stores with the most shipments</p></div>
+              <label class="compact-select"><span>SHOW</span><select id="store-limit"><option value="10" selected>Top 10</option><option value="20">Top 20</option><option value="all">All</option></select></label>
+            </div>
+            <div id="store-chart" class="bar-chart small-bar-chart" role="list" aria-label="Packing shipment count by store"></div>
+          </section>
+          <section class="panel provider-panel" aria-labelledby="provider-title">
+            <div class="panel-heading panel-heading-compact">
+              <div><p class="section-kicker">03 / CARRIER MIX</p><h2 id="provider-title">Shipping providers</h2><p class="panel-subtitle">Share of the current workload</p></div>
+            </div>
+            <div class="provider-content">
+              <div id="provider-donut" class="donut-chart" role="img" aria-label="Shipping provider distribution"></div>
+              <div id="provider-legend" class="provider-legend"></div>
+            </div>
+            <div id="provider-table" class="mini-ranking"></div>
+          </section>
+        </div>
+
+        <section class="panel heatmap-panel" aria-labelledby="heatmap-title">
+          <div class="panel-heading">
+            <div><p class="section-kicker">04 / WORKLOAD CONCENTRATION</p><h2 id="heatmap-title">Bin × store map</h2><p class="panel-subtitle">Shipment concentration across the busiest bins and stores in this selection</p></div>
+            <div class="heatmap-controls">
+              <label class="compact-select"><span>BINS</span><select id="heatmap-bin-limit"><option>8</option><option selected>12</option><option>20</option></select></label>
+              <label class="compact-select"><span>STORES</span><select id="heatmap-store-limit"><option>8</option><option selected>12</option><option>20</option></select></label>
+            </div>
+          </div>
+          <div class="heatmap-scroll" id="heatmap-container"></div>
+          <div class="heatmap-legend"><span>LOW VOLUME</span><i class="heat-step heat-1"></i><i class="heat-step heat-2"></i><i class="heat-step heat-3"></i><i class="heat-step heat-4"></i><i class="heat-step heat-5"></i><span>HIGH VOLUME</span><span class="heatmap-explainer">Showing busiest codes only. Hover a cell for exact count.</span></div>
+        </section>
+
+        <section class="panel explorer-panel" aria-labelledby="explorer-title">
+          <div class="panel-heading explorer-heading">
+            <div><p class="section-kicker">05 / LIVE SOURCE ROWS</p><h2 id="explorer-title">Shipment explorer</h2><p class="panel-subtitle">Search, inspect and export the current PackingPrintList rows</p></div>
+            <div class="download-actions">
+              <button class="button button-secondary button-small" id="copy-selected" type="button" disabled>Copy selected</button>
+              <button class="button button-secondary button-small" id="download-filtered" type="button">Download filtered</button>
+              <button class="button button-secondary button-small" id="download-view" type="button">Download this page</button>
+            </div>
+          </div>
+          <div class="table-toolbar">
+            <span id="table-summary">Waiting for live data</span>
+            <label class="page-size-label">ROWS <select id="page-size"><option>25</option><option selected>50</option><option>100</option><option>250</option></select></label>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr>
+                <th class="select-col"><span class="sr-only">Select row</span></th>
+                <th><button class="sort-button" data-sort="shippingPackageId" type="button">SHIPPING PACKAGE ID <span></span></button></th>
+                <th><button class="sort-button" data-sort="shippingProviderCode" type="button">SHIPPING PROVIDER CODE <span></span></button></th>
+                <th><button class="sort-button" data-sort="storeCode" type="button">STORE CODE <span></span></button></th>
+                <th><button class="sort-button" data-sort="binCode" type="button">BIN CODE <span></span></button></th>
+              </tr></thead>
+              <tbody id="shipment-rows"></tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span id="selected-summary">No rows selected</span>
+            <nav class="pagination" aria-label="Shipment table pages">
+              <button class="page-button" id="previous-page" type="button" aria-label="Previous page">‹</button>
+              <span id="page-indicator">Page 1 of 1</span>
+              <button class="page-button" id="next-page" type="button" aria-label="Next page">›</button>
+            </nav>
+          </div>
+        </section>
+
+        <section class="quality-row" aria-label="Data quality and attention">
+          <article class="panel quality-panel">
+            <div class="panel-heading panel-heading-compact"><div><p class="section-kicker">06 / SOURCE HEALTH</p><h2>Data quality</h2><p class="panel-subtitle">Checks across the full source snapshot</p></div><span id="quality-total" class="quality-total">— rows</span></div>
+            <div class="quality-metrics">
+              <div><span>Missing bin code</span><strong id="quality-missing-bin">—</strong></div>
+              <div><span>Missing store code</span><strong id="quality-missing-store">—</strong></div>
+              <div><span>Missing provider</span><strong id="quality-missing-provider">—</strong></div>
+              <div><span>Duplicate package IDs</span><strong id="quality-duplicates">—</strong></div>
+              <div><span>Invalid rows</span><strong id="quality-invalid">—</strong></div>
+            </div>
+          </article>
+          <article class="panel attention-panel">
+            <div class="panel-heading panel-heading-compact"><div><p class="section-kicker">WORKLOAD WATCH</p><h2>Attention required</h2><p class="panel-subtitle">High-volume bins flagged against this snapshot's distribution</p></div></div>
+            <div id="attention-list" class="attention-list"></div>
+          </article>
+        </section>
+      </div>
+    </main>
+    <footer class="site-footer"><span>Source of truth: NEXS Pickup Monitor · PackingPrintList</span><span>Only the latest pushed snapshot is available from this source</span></footer>
+  </div>
+</body>
+</html>
