@@ -29,6 +29,11 @@
     { key: "store", label: "STORE", element: "store-filter", field: "storeCode" },
     { key: "provider", label: "PROVIDER", element: "provider-filter", field: "shippingProviderCode" }
   ];
+  const BULK_FILTERS = [
+    { key: "bulkShipmentIds", label: "SHIPMENT / SNXS IDs", element: "bulk-shipment-ids", field: "shippingPackageId" },
+    { key: "bulkBinCodes", label: "BULK BIN CODES", element: "bulk-bin-codes", field: "binCode" },
+    { key: "bulkStoreCodes", label: "BULK STORE CODES", element: "bulk-store-codes", field: "storeCode" }
+  ];
   const state = {
     rows: [],
     filteredRows: [],
@@ -36,7 +41,7 @@
     loadedAt: null,
     connection: "loading",
     error: "",
-    filters: { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "", quality: "" },
+    filters: { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "", quality: "", bulkShipmentIds: "", bulkBinCodes: "", bulkStoreCodes: "" },
     sort: { field: "", direction: 1 },
     page: 1,
     pageSize: CONFIG.DEFAULT_PAGE_SIZE,
@@ -49,6 +54,8 @@
 
   const $ = (id) => document.getElementById(id);
   const formatter = new Intl.NumberFormat("en-US");
+  const parseBulkValues = (value) => [...new Set(String(value || "").split(/[,\t\r\n;|]+/).map((item) => item.trim()).filter(Boolean))];
+  const normalizeFilterValue = (value) => String(value || "").trim().toUpperCase();
   const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   })[character]);
@@ -235,6 +242,10 @@
 
   function applyFilters() {
     const { bin, binPrefix, binGroup, store, provider, search, quality } = state.filters;
+    const bulkValues = BULK_FILTERS.map(({ key, field }) => ({
+      field,
+      values: new Set(parseBulkValues(state.filters[key]).map(normalizeFilterValue))
+    })).filter(({ values }) => values.size);
     const needle = search.trim().toLowerCase();
     const qualityMatches = {
       missingBin: (row) => !row.binCode,
@@ -249,6 +260,7 @@
       (!binGroup || row.binGroup === binGroup) &&
       (!store || row.storeCode === store) &&
       (!provider || row.shippingProviderCode === provider) &&
+      bulkValues.every(({ field, values }) => values.has(normalizeFilterValue(row[field]))) &&
       (!quality || qualityMatches[quality](row)) &&
       (!needle || row.shippingPackageId.toLowerCase().includes(needle))
     );
@@ -289,6 +301,10 @@
   function renderActiveFilters() {
     const chips = FILTERS.filter(({ key }) => state.filters[key]).map(({ key, label }) =>
       `<span class="filter-chip">${label}: ${esc(state.filters[key])}<button type="button" data-remove-filter="${key}" aria-label="Remove ${label.toLowerCase()} filter">×</button></span>`);
+    for (const { key, label } of BULK_FILTERS) {
+      const count = parseBulkValues(state.filters[key]).length;
+      if (count) chips.push(`<span class="filter-chip">${label} (${formatter.format(count)})<button type="button" data-remove-filter="${key}" aria-label="Remove ${esc(label.toLowerCase())} filter">×</button></span>`);
+    }
     if (state.filters.binPrefix) {
       chips.push(`<span class="filter-chip">BIN PREFIX: ${esc(state.filters.binPrefix)}<button type="button" data-remove-filter="binPrefix" aria-label="Remove bin prefix filter">×</button></span>`);
     }
@@ -473,6 +489,7 @@
 
   function render() {
     const rows = applyFilters();
+    $("bulk-match-summary").textContent = `${formatter.format(rows.length)} matching shipment${rows.length === 1 ? "" : "s"}`;
     renderActiveFilters();
     renderKpis(rows);
     renderPrefixSection(rows);
@@ -560,11 +577,12 @@
   }
 
   function clearFilters() {
-    state.filters = { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "", quality: "" };
+    state.filters = { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "", quality: "", bulkShipmentIds: "", bulkBinCodes: "", bulkStoreCodes: "" };
     $("bin-filter").value = "";
     $("store-filter").value = "";
     $("provider-filter").value = "";
     $("search-filter").value = "";
+    for (const { element } of BULK_FILTERS) $(element).value = "";
     state.page = 1;
     render();
   }
@@ -617,6 +635,9 @@
       state.page = 1;
       render();
     });
+    for (const { key, element } of BULK_FILTERS) {
+      $(element).addEventListener("input", (event) => setFilter(key, event.target.value));
+    }
     $("clear-filters").addEventListener("click", clearFilters);
     $("active-filters").addEventListener("click", (event) => {
       const button = event.target.closest("[data-remove-filter]");
@@ -626,6 +647,8 @@
       else {
         const filter = FILTERS.find((item) => item.key === key);
         if (filter) $(filter.element).value = "";
+        const bulkFilter = BULK_FILTERS.find((item) => item.key === key);
+        if (bulkFilter) $(bulkFilter.element).value = "";
       }
       setFilter(key, "");
     });
@@ -677,6 +700,7 @@
     $("state-retry").addEventListener("click", refreshData);
     $("download-all").addEventListener("click", () => downloadCsv(`packing-print-list-${dateSuffix()}.csv`, state.rows));
     $("download-filtered").addEventListener("click", () => downloadCsv(`packing-print-list-filtered-${dateSuffix()}.csv`, state.filteredRows));
+    $("download-bulk-results").addEventListener("click", () => downloadCsv(`packing-print-list-matches-${dateSuffix()}.csv`, state.filteredRows));
     $("download-view").addEventListener("click", () => {
       const start = (state.page - 1) * state.pageSize;
       downloadCsv(`packing-print-list-page-${state.page}-${dateSuffix()}.csv`, state.filteredRows.slice(start, start + state.pageSize));

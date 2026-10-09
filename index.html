@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#101c2d">
   <meta name="description" content="Lenskart Live Dispatch Monitor for packing and bin workload at NEXS facility NXS2.">
   <title>Lenskart Live Dispatch Monitor · NXS2</title>
-  <link rel="stylesheet" href="css/dashboard.css?v=64aa472">
-  <script src="js/app.js" defer></script>
+  <link rel="stylesheet" href="css/dashboard.css?v=bulk-filter-a4884ca">
+  <script src="js/app.js?v=bulk-filter-a4884ca" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -56,6 +56,21 @@
           <label class="filter-field"><span>FILTER BY STORE CODE</span><select id="store-filter"><option value="">All store codes</option></select></label>
           <label class="filter-field"><span>SHIPPING PROVIDER</span><select id="provider-filter"><option value="">All providers</option></select></label>
           <label class="filter-field filter-search"><span>SHIPMENT SEARCH</span><input id="search-filter" type="search" placeholder="Search package ID…" autocomplete="off"></label>
+        </div>
+        <div class="bulk-filter-panel">
+          <div class="bulk-filter-heading">
+            <div><span class="section-kicker">BULK FILTER</span><span class="filter-hint">Paste one or more values copied from Excel; separate lists combine together.</span></div>
+            <span id="bulk-match-summary" class="bulk-match-summary" aria-live="polite">0 matching shipments</span>
+          </div>
+          <div class="bulk-filter-controls">
+            <label class="filter-field"><span>SHIPMENT / SNXS IDs</span><textarea id="bulk-shipment-ids" rows="2" placeholder="Paste IDs, one per row or cell" spellcheck="false"></textarea></label>
+            <label class="filter-field"><span>BIN CODES</span><textarea id="bulk-bin-codes" rows="2" placeholder="Paste bin codes from Excel" spellcheck="false"></textarea></label>
+            <label class="filter-field"><span>STORE CODES</span><textarea id="bulk-store-codes" rows="2" placeholder="Paste store codes from Excel" spellcheck="false"></textarea></label>
+          </div>
+          <div class="bulk-filter-footer">
+            <span>Accepts Excel rows, columns, tabs, commas or semicolons. Matches update the dashboard and shipment list.</span>
+            <button class="button button-secondary button-small" id="download-bulk-results" type="button">Download matching rows (CSV)</button>
+          </div>
         </div>
         <div class="active-filters" id="active-filters" aria-live="polite"></div>
       </section>
