@@ -23,6 +23,9 @@
         <div class="connection-pill" id="connection-pill" data-state="loading" role="status" aria-live="polite">
           <span class="status-dot" aria-hidden="true"></span><span id="connection-label">CONNECTING</span>
         </div>
+        <button class="button button-secondary theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light theme" aria-pressed="false" title="Switch to light theme">
+          <span id="theme-icon" aria-hidden="true">☀</span><span id="theme-label">Light theme</span>
+        </button>
         <button class="button button-secondary" id="refresh-button" type="button">
           <span class="refresh-icon" aria-hidden="true">↻</span> Refresh now
         </button>
@@ -93,8 +96,13 @@
           </article>
           <article class="kpi-card kpi-top-bin">
             <span class="kpi-label">BUSIEST BIN</span>
-            <strong class="kpi-value kpi-value-text" id="kpi-top-bin">—</strong>
+            <button class="kpi-value kpi-value-text kpi-action" id="kpi-top-bin" data-chart-filter="bin" data-value="" type="button" disabled>—</button>
             <span class="kpi-foot"><b id="kpi-top-bin-count">—</b> shipments in selection</span>
+          </article>
+          <article class="kpi-card kpi-top-group">
+            <span class="kpi-label">BUSIEST BIN GROUP</span>
+            <button class="kpi-value kpi-value-text kpi-action" id="kpi-top-group" data-chart-filter="binGroup" data-value="" type="button" disabled>—</button>
+            <span class="kpi-foot"><b id="kpi-top-group-count">—</b> shipments in selection</span>
           </article>
         </section>
 
@@ -182,11 +190,11 @@
           <article class="panel quality-panel">
             <div class="panel-heading panel-heading-compact"><div><p class="section-kicker">05 / SOURCE HEALTH</p><h2>Data quality</h2><p class="panel-subtitle">Checks across the full source snapshot</p></div><span id="quality-total" class="quality-total">— rows</span></div>
             <div class="quality-metrics">
-              <div><span>Missing bin code</span><strong id="quality-missing-bin">—</strong></div>
-              <div><span>Missing store code</span><strong id="quality-missing-store">—</strong></div>
-              <div><span>Missing provider</span><strong id="quality-missing-provider">—</strong></div>
-              <div><span>Duplicate package IDs</span><strong id="quality-duplicates">—</strong></div>
-              <div><span>Invalid rows</span><strong id="quality-invalid">—</strong></div>
+              <button class="quality-metric" type="button" data-quality-filter="missingBin"><span>Missing bin code</span><strong id="quality-missing-bin">—</strong></button>
+              <button class="quality-metric" type="button" data-quality-filter="missingStore"><span>Missing store code</span><strong id="quality-missing-store">—</strong></button>
+              <button class="quality-metric" type="button" data-quality-filter="missingProvider"><span>Missing provider</span><strong id="quality-missing-provider">—</strong></button>
+              <button class="quality-metric" type="button" data-quality-filter="duplicateIds"><span>Duplicate package IDs</span><strong id="quality-duplicates">—</strong></button>
+              <button class="quality-metric" type="button" data-quality-filter="invalid"><span>Invalid rows</span><strong id="quality-invalid">—</strong></button>
             </div>
           </article>
         </section>

@@ -36,7 +36,7 @@
     loadedAt: null,
     connection: "loading",
     error: "",
-    filters: { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "" },
+    filters: { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "", quality: "" },
     sort: { field: "", direction: 1 },
     page: 1,
     pageSize: CONFIG.DEFAULT_PAGE_SIZE,
@@ -125,6 +125,10 @@
         invalid
       };
     });
+    const packageIdCounts = countValues(rows, "shippingPackageId");
+    for (const row of rows) {
+      row.duplicatePackageId = Boolean(row.shippingPackageId && packageIdCounts.get(row.shippingPackageId) > 1);
+    }
     return { rows, invalidCount };
   }
 
@@ -220,27 +224,32 @@
   }
 
   function getQuality() {
-    const ids = countValues(state.rows, "shippingPackageId");
-    let duplicateIds = 0;
-    for (const count of ids.values()) if (count > 1) duplicateIds += count - 1;
     return {
       missingBin: state.rows.filter((row) => !row.binCode).length,
       missingStore: state.rows.filter((row) => !row.storeCode).length,
       missingProvider: state.rows.filter((row) => !row.shippingProviderCode).length,
-      duplicateIds,
+      duplicateIds: state.rows.filter((row) => row.duplicatePackageId).length,
       invalid: state.rows.filter((row) => row.invalid).length
     };
   }
 
   function applyFilters() {
-    const { bin, binPrefix, binGroup, store, provider, search } = state.filters;
+    const { bin, binPrefix, binGroup, store, provider, search, quality } = state.filters;
     const needle = search.trim().toLowerCase();
+    const qualityMatches = {
+      missingBin: (row) => !row.binCode,
+      missingStore: (row) => !row.storeCode,
+      missingProvider: (row) => !row.shippingProviderCode,
+      duplicateIds: (row) => row.duplicatePackageId,
+      invalid: (row) => row.invalid
+    };
     const rows = state.rows.filter((row) =>
       (!bin || row.binCode === bin) &&
       (!binPrefix || row.binPrefix === binPrefix) &&
       (!binGroup || row.binGroup === binGroup) &&
       (!store || row.storeCode === store) &&
       (!provider || row.shippingProviderCode === provider) &&
+      (!quality || qualityMatches[quality](row)) &&
       (!needle || row.shippingPackageId.toLowerCase().includes(needle))
     );
     if (state.sort.field) {
@@ -286,6 +295,16 @@
     if (state.filters.binGroup) {
       chips.push(`<span class="filter-chip">BIN RANGE: ${esc(state.filters.binGroup)}<button type="button" data-remove-filter="binGroup" aria-label="Remove bin range filter">×</button></span>`);
     }
+    if (state.filters.quality) {
+      const qualityLabels = {
+        missingBin: "Missing bin",
+        missingStore: "Missing store",
+        missingProvider: "Missing provider",
+        duplicateIds: "Duplicate package IDs",
+        invalid: "Invalid rows"
+      };
+      chips.push(`<span class="filter-chip">DATA QUALITY: ${esc(qualityLabels[state.filters.quality] || state.filters.quality)}<button type="button" data-remove-filter="quality" aria-label="Remove data quality filter">×</button></span>`);
+    }
     if (state.filters.search) {
       chips.push(`<span class="filter-chip">SEARCH: ${esc(state.filters.search)}<button type="button" data-remove-filter="search" aria-label="Remove shipment search">×</button></span>`);
     }
@@ -294,6 +313,7 @@
 
   function renderKpis(rows) {
     const bins = descendingEntries(countValues(rows, "binCode"));
+    const binGroups = descendingEntries(countValues(rows.filter((row) => row.binCode), "binGroup"));
     $("kpi-shipments").textContent = formatter.format(rows.length);
     $("kpi-shipments-foot").textContent = rows.length === state.rows.length
       ? "In current source snapshot"
@@ -303,6 +323,12 @@
     $("kpi-providers").textContent = formatter.format(countValues(rows, "shippingProviderCode").size);
     $("kpi-top-bin").textContent = bins.length ? bins[0][0] : "—";
     $("kpi-top-bin-count").textContent = bins.length ? formatter.format(bins[0][1]) : "—";
+    $("kpi-top-bin").dataset.value = bins.length ? bins[0][0] : "";
+    $("kpi-top-bin").disabled = !bins.length;
+    $("kpi-top-group").textContent = binGroups.length ? binGroups[0][0] : "—";
+    $("kpi-top-group-count").textContent = binGroups.length ? formatter.format(binGroups[0][1]) : "—";
+    $("kpi-top-group").dataset.value = binGroups.length ? binGroups[0][0] : "";
+    $("kpi-top-group").disabled = !binGroups.length;
   }
 
   function renderPrefixSection(rows) {
@@ -398,15 +424,18 @@
     const quality = getQuality();
     $("quality-total").textContent = `${formatter.format(state.rows.length)} rows`;
     const metrics = [
-      ["quality-missing-bin", quality.missingBin],
-      ["quality-missing-store", quality.missingStore],
-      ["quality-missing-provider", quality.missingProvider],
-      ["quality-duplicates", quality.duplicateIds],
-      ["quality-invalid", quality.invalid]
+      ["quality-missing-bin", "missingBin", quality.missingBin],
+      ["quality-missing-store", "missingStore", quality.missingStore],
+      ["quality-missing-provider", "missingProvider", quality.missingProvider],
+      ["quality-duplicates", "duplicateIds", quality.duplicateIds],
+      ["quality-invalid", "invalid", quality.invalid]
     ];
-    for (const [id, value] of metrics) {
+    for (const [id, filter, value] of metrics) {
       $(id).textContent = formatter.format(value);
       $(id).classList.toggle("has-issues", value > 0);
+      const button = $(id).closest("button");
+      button.disabled = value === 0;
+      button.setAttribute("aria-pressed", String(state.filters.quality === filter));
     }
   }
 
@@ -531,7 +560,7 @@
   }
 
   function clearFilters() {
-    state.filters = { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "" };
+    state.filters = { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "", quality: "" };
     $("bin-filter").value = "";
     $("store-filter").value = "";
     $("provider-filter").value = "";
@@ -601,6 +630,12 @@
       setFilter(key, "");
     });
     $("dashboard-content").addEventListener("click", (event) => {
+      const qualityButton = event.target.closest("[data-quality-filter]");
+      if (!qualityButton) return;
+      const filter = qualityButton.dataset.qualityFilter;
+      setFilter("quality", state.filters.quality === filter ? "" : filter);
+    });
+    $("dashboard-content").addEventListener("click", (event) => {
       const filterButton = event.target.closest("[data-chart-filter]");
       if (filterButton) {
         const kind = filterButton.dataset.chartFilter;
@@ -647,8 +682,40 @@
       downloadCsv(`packing-print-list-page-${state.page}-${dateSuffix()}.csv`, state.filteredRows.slice(start, start + state.pageSize));
     });
     $("copy-selected").addEventListener("click", copySelectedRows);
+    $("theme-toggle").addEventListener("click", () => {
+      setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+    });
   }
 
+  function setTheme(theme) {
+    const selectedTheme = theme === "light" ? "light" : "dark";
+    document.documentElement.dataset.theme = selectedTheme;
+    const light = selectedTheme === "light";
+    $("theme-toggle").setAttribute("aria-pressed", String(light));
+    $("theme-toggle").title = `Switch to ${light ? "dark" : "light"} theme`;
+    $("theme-toggle").setAttribute("aria-label", `Switch to ${light ? "dark" : "light"} theme`);
+    $("theme-icon").textContent = light ? "☾" : "☀";
+    $("theme-label").textContent = `${light ? "Dark" : "Light"} theme`;
+    document.querySelector('meta[name="theme-color"]').content = light ? "#f2f5f8" : "#101c2d";
+    try {
+      localStorage.setItem("dispatch-pendency-theme", selectedTheme);
+    } catch (error) {
+      console.warn("Theme preference could not be saved; the selected theme remains active for this page.", error);
+    }
+  }
+
+  function initializeTheme() {
+    let preferredTheme = "dark";
+    try {
+      const savedTheme = localStorage.getItem("dispatch-pendency-theme");
+      if (savedTheme === "light" || savedTheme === "dark") preferredTheme = savedTheme;
+    } catch (error) {
+      console.warn("Saved theme preference could not be read; using the default dark theme.", error);
+    }
+    setTheme(preferredTheme);
+  }
+
+  initializeTheme();
   bindEvents();
   refreshData();
   state.timer = setInterval(refreshData, CONFIG.REFRESH_INTERVAL_MS);
