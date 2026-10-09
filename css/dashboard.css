@@ -120,6 +120,24 @@ h1 { margin-bottom: 7px; font-size: clamp(25px, 2.4vw, 34px); letter-spacing: -.
 .panel-footer { display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; color: var(--subtle); font-size: 9px; }
 .current-snapshot { color: #84aa9b; font-size: 8px; font-weight: 700; letter-spacing: .08em; }
 .current-snapshot i { width: 5px; height: 5px; }
+.prefix-panel { padding-bottom: 14px; }
+.prefix-table-scroll { max-height: 310px; overflow: auto; border: 1px solid #26374a; border-radius: 4px; }
+.prefix-table { width: 100%; border-collapse: collapse; }
+.prefix-table th { position: sticky; top: 0; z-index: 1; height: 35px; padding: 0 12px; background: #1b2c41; color: #9cafc2; font-size: 9px; font-weight: 700; letter-spacing: .08em; text-align: left; }
+.prefix-table td { height: 38px; padding: 0 12px; border-top: 1px solid #223449; color: #cbd7e4; font-size: 11px; font-variant-numeric: tabular-nums; }
+.prefix-table tr:hover td, .prefix-table tr.is-selected td { background: #192c40; }
+.prefix-table tr.is-selected td:first-child { box-shadow: inset 2px 0 var(--accent); }
+.prefix-filter-button, .prefix-busiest-button { padding: 4px 0; border: 0; background: transparent; color: #9be4d0; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; font-weight: 700; text-align: left; }
+.prefix-filter-button:hover, .prefix-busiest-button:hover { color: var(--accent); text-decoration: underline; }
+.prefix-busiest-button { color: #dce6f0; font-size: 10px; }
+.prefix-busiest-button span { margin-left: 4px; color: var(--muted); }
+.prefix-number { font-weight: 700; }
+.prefix-share { display: flex; min-width: 120px; align-items: center; gap: 9px; }
+.prefix-share-track { display: inline-block; width: min(120px, 45%); height: 7px; overflow: hidden; border-radius: 2px; background: #1b2a3b; }
+.prefix-share-track i { display: block; height: 100%; background: #258b77; }
+.prefix-table tr:first-child .prefix-share-track i { background: var(--accent); }
+.missing-prefix-value { color: var(--amber); font-style: italic; }
+.prefix-empty { height: 64px !important; color: var(--muted) !important; text-align: center; }
 .analysis-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 16px; }
 .analysis-grid > .panel { min-width: 0; }
 .small-bar-chart { min-height: 190px; max-height: 300px; overflow: auto; }
@@ -239,6 +257,10 @@ h1 { margin-bottom: 7px; font-size: clamp(25px, 2.4vw, 34px); letter-spacing: -.
   .kpi-card:last-child { grid-column: span 2; }
   .panel-heading { gap: 10px; }
   .panel-heading h2 { font-size: 15px; }
+  .prefix-table th, .prefix-table td { padding: 0 8px; font-size: 9px; }
+  .prefix-table th { font-size: 8px; }
+  .prefix-table th:nth-child(4), .prefix-table td:nth-child(4) { display: none; }
+  .prefix-share { min-width: 85px; }
   .panel-heading-compact { flex-wrap: wrap; }
   .bar-row { grid-template-columns: minmax(62px, 95px) minmax(20px, 1fr) 38px 35px; gap: 6px; }
   .bar-label { font-size: 9px; }

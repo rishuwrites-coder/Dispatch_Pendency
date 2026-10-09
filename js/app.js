@@ -22,7 +22,7 @@
     loadedAt: null,
     connection: "loading",
     error: "",
-    filters: { bin: "", store: "", provider: "", search: "" },
+    filters: { bin: "", binPrefix: "", store: "", provider: "", search: "" },
     sort: { field: "", direction: 1 },
     page: 1,
     pageSize: CONFIG.DEFAULT_PAGE_SIZE,
@@ -39,6 +39,12 @@
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   })[character]);
   const displayValue = (value) => value || "Missing";
+
+  function getBinPrefix(binCode) {
+    if (!binCode) return "Missing bin";
+    const match = binCode.match(/^[A-Za-z]+/);
+    return match ? match[0].toUpperCase() : "Other / numeric";
+  }
 
   function readField(record, index, key) {
     if (Array.isArray(record)) return record[index];
@@ -61,6 +67,7 @@
           shippingProviderCode: "",
           storeCode: "",
           binCode: "",
+          binPrefix: "Missing bin",
           invalid: true
         };
       }
@@ -81,6 +88,7 @@
         shippingProviderCode: values[1],
         storeCode: values[2],
         binCode: values[3],
+        binPrefix: getBinPrefix(values[3]),
         invalid
       };
     });
@@ -192,10 +200,11 @@
   }
 
   function applyFilters() {
-    const { bin, store, provider, search } = state.filters;
+    const { bin, binPrefix, store, provider, search } = state.filters;
     const needle = search.trim().toLowerCase();
     const rows = state.rows.filter((row) =>
       (!bin || row.binCode === bin) &&
+      (!binPrefix || row.binPrefix === binPrefix) &&
       (!store || row.storeCode === store) &&
       (!provider || row.shippingProviderCode === provider) &&
       (!needle || row.shippingPackageId.toLowerCase().includes(needle))
@@ -237,6 +246,9 @@
   function renderActiveFilters() {
     const chips = FILTERS.filter(({ key }) => state.filters[key]).map(({ key, label }) =>
       `<span class="filter-chip">${label}: ${esc(state.filters[key])}<button type="button" data-remove-filter="${key}" aria-label="Remove ${label.toLowerCase()} filter">×</button></span>`);
+    if (state.filters.binPrefix) {
+      chips.push(`<span class="filter-chip">BIN PREFIX: ${esc(state.filters.binPrefix)}<button type="button" data-remove-filter="binPrefix" aria-label="Remove bin prefix filter">×</button></span>`);
+    }
     if (state.filters.search) {
       chips.push(`<span class="filter-chip">SEARCH: ${esc(state.filters.search)}<button type="button" data-remove-filter="search" aria-label="Remove shipment search">×</button></span>`);
     }
@@ -281,6 +293,33 @@
     renderBarChart($("bin-chart"), counts, rows.length, $("bin-limit").value, "No bin-coded shipments match these filters.", "bin");
     const visible = $("bin-limit").value === "all" ? counts.length : Math.min(counts.length, Number($("bin-limit").value));
     $("bin-chart-summary").textContent = `${formatter.format(counts.length)} bins · showing ${formatter.format(visible)} · ${formatter.format(rows.length)} shipments`;
+  }
+
+  function renderPrefixSection(rows) {
+    const groups = new Map();
+    for (const row of rows) {
+      let group = groups.get(row.binPrefix);
+      if (!group) {
+        group = { shipments: 0, bins: new Map() };
+        groups.set(row.binPrefix, group);
+      }
+      group.shipments += 1;
+      if (row.binCode) group.bins.set(row.binCode, (group.bins.get(row.binCode) || 0) + 1);
+    }
+    const entries = [...groups.entries()].sort((a, b) =>
+      b[1].shipments - a[1].shipments || a[0].localeCompare(b[0], undefined, { numeric: true }));
+    $("prefix-rows").innerHTML = entries.length ? entries.map(([prefix, group]) => {
+      const busiest = descendingEntries(group.bins)[0];
+      const share = rows.length ? group.shipments / rows.length * 100 : 0;
+      return `<tr class="${state.filters.binPrefix === prefix ? "is-selected" : ""}">
+        <td><button class="prefix-filter-button" type="button" data-chart-filter="prefix" data-value="${esc(prefix)}" aria-label="Filter by bin prefix ${esc(prefix)}">${esc(prefix)}</button></td>
+        <td class="prefix-number">${formatter.format(group.shipments)}</td>
+        <td class="prefix-share"><span class="prefix-share-track"><i style="width:${share.toFixed(2)}%"></i></span><span>${share.toFixed(1)}%</span></td>
+        <td>${formatter.format(group.bins.size)}</td>
+        <td>${busiest ? `<button class="prefix-busiest-button" type="button" data-chart-filter="bin" data-value="${esc(busiest[0])}" title="Filter by ${esc(busiest[0])}">${esc(busiest[0])} <span>${formatter.format(busiest[1])}</span></button>` : '<span class="missing-prefix-value">—</span>'}</td>
+      </tr>`;
+    }).join("") : '<tr><td class="prefix-empty" colspan="5">No bin workload matches the current filters.</td></tr>';
+    $("prefix-summary").textContent = `${formatter.format(entries.length)} prefix groups · ${formatter.format(rows.length)} shipments in this selection`;
   }
 
   function renderStoreSection(rows) {
@@ -404,6 +443,7 @@
     renderActiveFilters();
     renderKpis(rows);
     renderBinSection(rows);
+    renderPrefixSection(rows);
     renderStoreSection(rows);
     renderProviderSection(rows);
     renderHeatmap(rows);
@@ -490,7 +530,7 @@
   }
 
   function clearFilters() {
-    state.filters = { bin: "", store: "", provider: "", search: "" };
+    state.filters = { bin: "", binPrefix: "", store: "", provider: "", search: "" };
     $("bin-filter").value = "";
     $("store-filter").value = "";
     $("provider-filter").value = "";
@@ -563,10 +603,10 @@
       const filterButton = event.target.closest("[data-chart-filter]");
       if (filterButton) {
         const kind = filterButton.dataset.chartFilter;
-        const key = kind === "bin" ? "bin" : kind === "store" ? "store" : "provider";
-        const element = key === "bin" ? "bin-filter" : key === "store" ? "store-filter" : "provider-filter";
+        const key = kind === "bin" ? "bin" : kind === "store" ? "store" : kind === "prefix" ? "binPrefix" : "provider";
+        const element = key === "bin" ? "bin-filter" : key === "store" ? "store-filter" : key === "provider" ? "provider-filter" : null;
         const value = state.filters[key] === filterButton.dataset.value ? "" : filterButton.dataset.value;
-        $(element).value = value;
+        if (element) $(element).value = value;
         setFilter(key, value);
         return;
       }

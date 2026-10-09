@@ -117,6 +117,23 @@
           </div>
         </section>
 
+        <section class="panel prefix-panel" aria-labelledby="prefix-title">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">02 / BIN PREFIX GROUPING</p>
+              <h2 id="prefix-title">Workload by bin prefix</h2>
+              <p class="panel-subtitle">Groups use the leading letters in Bin Code, up to the first digit. Select a group to filter the full dashboard.</p>
+            </div>
+          </div>
+          <div class="prefix-table-scroll">
+            <table class="prefix-table">
+              <thead><tr><th scope="col">BIN PREFIX</th><th scope="col">SHIPMENTS</th><th scope="col">SHARE</th><th scope="col">UNIQUE BIN CODES</th><th scope="col">BUSIEST BIN</th></tr></thead>
+              <tbody id="prefix-rows"></tbody>
+            </table>
+          </div>
+          <div class="panel-footer"><span id="prefix-summary">—</span><span>Prefix is derived from the actual Bin Code field</span></div>
+        </section>
+
         <div class="analysis-grid">
           <section class="panel" aria-labelledby="store-title">
             <div class="panel-heading panel-heading-compact">
