@@ -41,7 +41,7 @@
           <div class="updated-line"><span class="meta-label">LAST UPDATED</span><strong id="last-updated">Waiting for data</strong></div>
           <div class="updated-line"><span class="meta-label">NEXT REFRESH</span><strong id="countdown">—</strong></div>
         </div>
-      </section>
+      </div>
 
       <section class="filter-panel" aria-label="Global shipment filters">
         <div class="filter-heading">
@@ -98,29 +98,10 @@
           </article>
         </section>
 
-        <section class="panel bin-panel" aria-labelledby="bin-title">
-          <div class="panel-heading">
-            <div>
-              <p class="section-kicker">01 / PRIMARY WORKLOAD</p>
-              <h2 id="bin-title">Bin code workload</h2>
-              <p class="panel-subtitle">Where is the packing queue concentrated right now?</p>
-            </div>
-            <label class="compact-select"><span>SHOW</span><select id="bin-limit"><option value="10">Top 10</option><option value="20" selected>Top 20</option><option value="50">Top 50</option><option value="all">All bins</option></select></label>
-          </div>
-          <div class="bin-chart-wrap">
-            <div class="chart-legend"><span><i class="legend-swatch swatch-main"></i> Shipments by bin</span><span class="chart-note">Select a bin to filter the dashboard</span></div>
-            <div id="bin-chart" class="bar-chart bin-chart" role="list" aria-label="Packing shipment count by bin"></div>
-          </div>
-          <div class="panel-footer">
-            <span id="bin-chart-summary">—</span>
-            <span class="current-snapshot"><i></i> CURRENT SNAPSHOT · NOT A TREND</span>
-          </div>
-        </section>
-
         <section class="panel prefix-panel" aria-labelledby="prefix-title">
           <div class="panel-heading">
             <div>
-              <p class="section-kicker">02 / BIN PREFIX GROUPING</p>
+              <p class="section-kicker">01 / BIN PREFIX GROUPING</p>
               <h2 id="prefix-title">Workload by bin prefix</h2>
               <p class="panel-subtitle">Groups use the leading letters in Bin Code, up to the first digit. Select a group to filter the full dashboard.</p>
             </div>
@@ -137,7 +118,7 @@
         <section class="panel prefix-panel" aria-labelledby="bin-range-title">
           <div class="panel-heading">
             <div>
-              <p class="section-kicker">03 / BIN RANGE GROUPING</p>
+              <p class="section-kicker">02 / BIN RANGE GROUPING</p>
               <h2 id="bin-range-title">Workload by bin range</h2>
               <p class="panel-subtitle">NDD, P and GP bins follow the requested numeric ranges. S, V and D bins are grouped as a whole prefix.</p>
             </div>
@@ -151,41 +132,20 @@
           <div class="panel-footer"><span id="bin-range-summary">—</span><span>Range boundaries are inclusive</span></div>
         </section>
 
-        <div class="analysis-grid">
-          <section class="panel" aria-labelledby="store-title">
-            <div class="panel-heading panel-heading-compact">
-              <div><p class="section-kicker">02 / DISTRIBUTION</p><h2 id="store-title">Store workload</h2><p class="panel-subtitle">Stores with the most shipments</p></div>
-              <label class="compact-select"><span>SHOW</span><select id="store-limit"><option value="10" selected>Top 10</option><option value="20">Top 20</option><option value="all">All</option></select></label>
-            </div>
-            <div id="store-chart" class="bar-chart small-bar-chart" role="list" aria-label="Packing shipment count by store"></div>
-          </section>
-          <section class="panel provider-panel" aria-labelledby="provider-title">
-            <div class="panel-heading panel-heading-compact">
-              <div><p class="section-kicker">03 / CARRIER MIX</p><h2 id="provider-title">Shipping providers</h2><p class="panel-subtitle">Share of the current workload</p></div>
-            </div>
-            <div class="provider-content">
-              <div id="provider-donut" class="donut-chart" role="img" aria-label="Shipping provider distribution"></div>
-              <div id="provider-legend" class="provider-legend"></div>
-            </div>
-            <div id="provider-table" class="mini-ranking"></div>
-          </section>
-        </div>
-
-        <section class="panel heatmap-panel" aria-labelledby="heatmap-title">
-          <div class="panel-heading">
-            <div><p class="section-kicker">04 / WORKLOAD CONCENTRATION</p><h2 id="heatmap-title">Bin × store map</h2><p class="panel-subtitle">Shipment concentration across the busiest bins and stores in this selection</p></div>
-            <div class="heatmap-controls">
-              <label class="compact-select"><span>BINS</span><select id="heatmap-bin-limit"><option>8</option><option selected>12</option><option>20</option></select></label>
-              <label class="compact-select"><span>STORES</span><select id="heatmap-store-limit"><option>8</option><option selected>12</option><option>20</option></select></label>
-            </div>
+        <section class="panel provider-panel" aria-labelledby="provider-title">
+          <div class="panel-heading panel-heading-compact">
+            <div><p class="section-kicker">03 / CARRIER MIX</p><h2 id="provider-title">Shipping providers</h2><p class="panel-subtitle">Share of the current workload</p></div>
           </div>
-          <div class="heatmap-scroll" id="heatmap-container"></div>
-          <div class="heatmap-legend"><span>LOW VOLUME</span><i class="heat-step heat-1"></i><i class="heat-step heat-2"></i><i class="heat-step heat-3"></i><i class="heat-step heat-4"></i><i class="heat-step heat-5"></i><span>HIGH VOLUME</span><span class="heatmap-explainer">Showing busiest codes only. Hover a cell for exact count.</span></div>
+          <div class="provider-content">
+            <div id="provider-donut" class="donut-chart" role="img" aria-label="Shipping provider distribution"></div>
+            <div id="provider-legend" class="provider-legend"></div>
+          </div>
+          <div id="provider-table" class="mini-ranking"></div>
         </section>
 
         <section class="panel explorer-panel" aria-labelledby="explorer-title">
           <div class="panel-heading explorer-heading">
-            <div><p class="section-kicker">05 / LIVE SOURCE ROWS</p><h2 id="explorer-title">Shipment explorer</h2><p class="panel-subtitle">Search, inspect and export the current PackingPrintList rows</p></div>
+            <div><p class="section-kicker">04 / LIVE SOURCE ROWS</p><h2 id="explorer-title">Shipment explorer</h2><p class="panel-subtitle">Search, inspect and export the current PackingPrintList rows</p></div>
             <div class="download-actions">
               <button class="button button-secondary button-small" id="copy-selected" type="button" disabled>Copy selected</button>
               <button class="button button-secondary button-small" id="download-filtered" type="button">Download filtered</button>
@@ -218,9 +178,9 @@
           </div>
         </section>
 
-        <section class="quality-row" aria-label="Data quality and attention">
+        <section class="quality-row" aria-label="Data quality">
           <article class="panel quality-panel">
-            <div class="panel-heading panel-heading-compact"><div><p class="section-kicker">06 / SOURCE HEALTH</p><h2>Data quality</h2><p class="panel-subtitle">Checks across the full source snapshot</p></div><span id="quality-total" class="quality-total">— rows</span></div>
+            <div class="panel-heading panel-heading-compact"><div><p class="section-kicker">05 / SOURCE HEALTH</p><h2>Data quality</h2><p class="panel-subtitle">Checks across the full source snapshot</p></div><span id="quality-total" class="quality-total">— rows</span></div>
             <div class="quality-metrics">
               <div><span>Missing bin code</span><strong id="quality-missing-bin">—</strong></div>
               <div><span>Missing store code</span><strong id="quality-missing-store">—</strong></div>
@@ -228,10 +188,6 @@
               <div><span>Duplicate package IDs</span><strong id="quality-duplicates">—</strong></div>
               <div><span>Invalid rows</span><strong id="quality-invalid">—</strong></div>
             </div>
-          </article>
-          <article class="panel attention-panel">
-            <div class="panel-heading panel-heading-compact"><div><p class="section-kicker">WORKLOAD WATCH</p><h2>Attention required</h2><p class="panel-subtitle">High-volume bins flagged against this snapshot's distribution</p></div></div>
-            <div id="attention-list" class="attention-list"></div>
           </article>
         </section>
       </div>

@@ -305,33 +305,6 @@
     $("kpi-top-bin-count").textContent = bins.length ? formatter.format(bins[0][1]) : "—";
   }
 
-  function renderBarChart(container, entries, total, requestedLimit, emptyMessage, chartName) {
-    const limit = requestedLimit === "all" ? entries.length : Number(requestedLimit);
-    const shown = entries.slice(0, limit);
-    if (!shown.length) {
-      container.innerHTML = `<div class="empty-chart">${esc(emptyMessage)}</div>`;
-      return;
-    }
-    const max = shown[0][1] || 1;
-    container.innerHTML = shown.map(([label, count], index) => {
-      const percent = total ? count / total * 100 : 0;
-      const selected = (chartName === "bin" && state.filters.bin === label) || (chartName === "store" && state.filters.store === label);
-      return `<div class="bar-row ${index < 3 ? "is-top" : ""}" role="listitem">
-        <button class="bar-label" type="button" data-chart-filter="${chartName}" data-value="${esc(label)}" aria-label="Filter by ${chartName} ${esc(label)}${selected ? ", selected" : ""}">${esc(label)}</button>
-        <span class="bar-track" aria-hidden="true"><span class="bar-fill" style="display:block;width:${Math.max(1, count / max * 100)}%"></span></span>
-        <span class="bar-count" title="${formatter.format(count)} shipments">${formatter.format(count)}</span>
-        <span class="bar-share">${percent.toFixed(1)}%</span>
-      </div>`;
-    }).join("");
-  }
-
-  function renderBinSection(rows) {
-    const counts = descendingEntries(countValues(rows, "binCode"));
-    renderBarChart($("bin-chart"), counts, rows.length, $("bin-limit").value, "No bin-coded shipments match these filters.", "bin");
-    const visible = $("bin-limit").value === "all" ? counts.length : Math.min(counts.length, Number($("bin-limit").value));
-    $("bin-chart-summary").textContent = `${formatter.format(counts.length)} bins · showing ${formatter.format(visible)} · ${formatter.format(rows.length)} shipments`;
-  }
-
   function renderPrefixSection(rows) {
     const groups = new Map();
     for (const row of rows) {
@@ -397,11 +370,6 @@
     $("bin-range-summary").textContent = `${formatter.format(entries.length)} bin range groups · ${formatter.format(rows.length)} shipments in this selection`;
   }
 
-  function renderStoreSection(rows) {
-    renderBarChart($("store-chart"), descendingEntries(countValues(rows, "storeCode")), rows.length,
-      $("store-limit").value, "No store-coded shipments match these filters.", "store");
-  }
-
   function renderProviderSection(rows) {
     const entries = descendingEntries(countValues(rows, "shippingProviderCode"));
     const total = entries.reduce((sum, [, count]) => sum + count, 0);
@@ -426,31 +394,6 @@
       '<div class="empty-chart">No providers in this selection</div>';
   }
 
-  function renderHeatmap(rows) {
-    const bins = descendingEntries(countValues(rows, "binCode")).slice(0, Number($("heatmap-bin-limit").value));
-    const stores = descendingEntries(countValues(rows, "storeCode")).slice(0, Number($("heatmap-store-limit").value));
-    const counts = new Map();
-    let maximum = 0;
-    for (const row of rows) {
-      if (!row.binCode || !row.storeCode) continue;
-      const key = `${row.binCode}\u0000${row.storeCode}`;
-      const count = (counts.get(key) || 0) + 1;
-      counts.set(key, count);
-      if (count > maximum) maximum = count;
-    }
-    if (!bins.length || !stores.length) {
-      $("heatmap-container").innerHTML = '<div class="heatmap-empty">No bin and store combinations match this selection.</div>';
-      return;
-    }
-    const header = stores.map(([store]) => `<th scope="col" title="${esc(store)}">${esc(store)}</th>`).join("");
-    const body = bins.map(([bin]) => `<tr><th scope="row" title="${esc(bin)}">${esc(bin)}</th>${stores.map(([store]) => {
-      const count = counts.get(`${bin}\u0000${store}`) || 0;
-      const level = count === 0 ? 0 : Math.min(5, Math.ceil(count / maximum * 5));
-      return `<td><button class="heat-cell heat-${level}" type="button" data-heat-bin="${esc(bin)}" data-heat-store="${esc(store)}" title="${esc(bin)} × ${esc(store)}: ${formatter.format(count)} shipment${count === 1 ? "" : "s"}" aria-label="${esc(bin)} and ${esc(store)}: ${formatter.format(count)} shipments">${count ? formatter.format(count) : "·"}</button></td>`;
-    }).join("")}</tr>`).join("");
-    $("heatmap-container").innerHTML = `<table class="heatmap"><thead><tr><th scope="col">BIN \\ STORE</th>${header}</tr></thead><tbody>${body}</tbody></table>`;
-  }
-
   function renderQuality() {
     const quality = getQuality();
     $("quality-total").textContent = `${formatter.format(state.rows.length)} rows`;
@@ -465,20 +408,6 @@
       $(id).textContent = formatter.format(value);
       $(id).classList.toggle("has-issues", value > 0);
     }
-  }
-
-  function renderAttention(rows) {
-    const bins = descendingEntries(countValues(rows, "binCode"));
-    if (!bins.length) {
-      $("attention-list").innerHTML = '<div class="attention-clear">No bin workload to flag in this selection.</div>';
-      return;
-    }
-    const values = bins.map(([, count]) => count).sort((a, b) => a - b);
-    const p90 = values[Math.ceil(values.length * 0.9) - 1] || 0;
-    const mean = rows.length / bins.length;
-    const flagged = bins.filter(([, count], index) => index < 5 || count > p90 || count > mean * 2).slice(0, 6);
-    $("attention-list").innerHTML = flagged.map(([bin, count]) =>
-      `<div class="attention-item"><button type="button" data-chart-filter="bin" data-value="${esc(bin)}" title="Filter by ${esc(bin)}">${esc(bin)}</button><strong>${formatter.format(count)} · ${rows.length ? (count / rows.length * 100).toFixed(1) : "0.0"}%</strong></div>`).join("");
   }
 
   function renderTable() {
@@ -517,14 +446,10 @@
     const rows = applyFilters();
     renderActiveFilters();
     renderKpis(rows);
-    renderBinSection(rows);
     renderPrefixSection(rows);
     renderBinRangeSection(rows);
-    renderStoreSection(rows);
     renderProviderSection(rows);
-    renderHeatmap(rows);
     renderQuality();
-    renderAttention(rows);
     renderTable();
     $("dashboard-content").setAttribute("aria-busy", "false");
   }
@@ -686,21 +611,7 @@
         setFilter(key, value);
         return;
       }
-      const heatCell = event.target.closest("[data-heat-bin]");
-      if (heatCell) {
-        const nextBin = state.filters.bin === heatCell.dataset.heatBin ? "" : heatCell.dataset.heatBin;
-        const nextStore = state.filters.store === heatCell.dataset.heatStore ? "" : heatCell.dataset.heatStore;
-        $("bin-filter").value = nextBin;
-        $("store-filter").value = nextStore;
-        state.filters.bin = nextBin;
-        state.filters.store = nextStore;
-        state.page = 1;
-        render();
-      }
     });
-    for (const id of ["bin-limit", "store-limit", "heatmap-bin-limit", "heatmap-store-limit"]) {
-      $(id).addEventListener("change", render);
-    }
     $("page-size").value = String(state.pageSize);
     $("page-size").addEventListener("change", (event) => {
       state.pageSize = Number(event.target.value);
