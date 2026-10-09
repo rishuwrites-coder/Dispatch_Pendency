@@ -1,5 +1,4 @@
 # Operational source/configuration files are not part of the public dashboard.
-/Code.gs
 /packing_print_bookmarklet.txt
 /NEXS Pickup Monitor.xlsx
 /requirements.txt
