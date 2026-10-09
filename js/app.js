@@ -271,8 +271,8 @@
 
   function renderFilterOptions() {
     const options = [
-      ["bin-filter", "All bins", "binCode"],
-      ["store-filter", "All stores", "storeCode"],
+      ["bin-filter", "All bin codes", "binCode"],
+      ["store-filter", "All store codes", "storeCode"],
       ["provider-filter", "All providers", "shippingProviderCode"]
     ];
     for (const [id, placeholder, field] of options) {

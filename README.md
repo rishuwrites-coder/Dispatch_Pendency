@@ -21,6 +21,8 @@ The dashboard expects the Web App response from `?type=packingPrintList&includeR
 - Store Code
 - Bin Code
 
+Use the global filters to select a bin code and/or store code; both can be active together and update the dashboard and shipment list.
+
 The workload-by-prefix view groups each `Bin Code` by its leading letters up to the first digit (for example, `NDD1158` is in prefix `NDD`). Missing or non-letter-prefixed bin codes remain visible in their own groups. Selecting a prefix filters the dashboard without changing the source data.
 
 The bin-range view also groups NDD bins into `NDD1-NDD175`, `NDD176-NDD355`, `NDD356-NDD525`, `NDD526-NDD698`, `NDD699-NDD868`, `NDD869-NDD1008`, `NDD1009-NDD1188`, and `NDD1189-NDD END`. P bins are grouped into `P1-P195` and `P196-PEND`; GP bins into `GP1-GP263` and `GP264-GP END`. S, V and D each have a whole-prefix group. The specified range boundaries are inclusive.
