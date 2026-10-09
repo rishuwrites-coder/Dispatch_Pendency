@@ -428,12 +428,15 @@
     $("provider-donut").setAttribute("aria-label", entries.map(([name, count]) =>
       `${name}: ${total ? (count / total * 100).toFixed(1) : "0.0"} percent`).join(", ") || "No provider data");
     $("provider-donut").innerHTML = `<div class="donut-center"><strong>${formatter.format(total)}</strong><span>SHIPMENTS</span></div>`;
-    $("provider-legend").innerHTML = donutEntries.slice(0, 5).map(([name, count], index) =>
-      `<div class="provider-legend-item"><i style="background:${CONFIG.DONUT_COLORS[index % CONFIG.DONUT_COLORS.length]}"></i><span>${esc(name)}</span><strong>${total ? (count / total * 100).toFixed(1) : "0.0"}%</strong></div>`).join("") ||
-      '<div class="empty-chart">No provider data</div>';
-    $("provider-table").innerHTML = entries.slice(0, 5).map(([name, count], index) =>
-      `<div class="mini-ranking-row"><span>${String(index + 1).padStart(2, "0")}</span><button type="button" data-chart-filter="provider" data-value="${esc(name)}" title="Filter by ${esc(name)}">${esc(name)}</button><strong>${formatter.format(count)}</strong><em>${total ? (count / total * 100).toFixed(1) : "0.0"}%</em></div>`).join("") ||
-      '<div class="empty-chart">No providers in this selection</div>';
+    $("provider-legend").innerHTML = entries.map(([name, count], index) => {
+      const share = total ? count / total * 100 : 0;
+      const color = CONFIG.DONUT_COLORS[index % CONFIG.DONUT_COLORS.length];
+      return `<button class="provider-card" type="button" role="listitem" data-chart-filter="provider" data-value="${esc(name)}" style="--provider-color:${color}" aria-label="Filter by ${esc(name)}: ${formatter.format(count)} shipments, ${share.toFixed(1)} percent of workload" title="Filter by ${esc(name)}">
+        <span class="provider-card-name"><i aria-hidden="true"></i>${esc(name)}</span>
+        <span class="provider-card-stats"><strong>${formatter.format(count)}</strong><span>${share.toFixed(1)}%</span></span>
+        <span class="provider-card-track" aria-hidden="true"><i style="width:${share.toFixed(2)}%"></i></span>
+      </button>`;
+    }).join("") || '<div class="empty-chart">No providers in this selection</div>';
   }
 
   function renderQuality() {
