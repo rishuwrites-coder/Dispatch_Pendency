@@ -21,8 +21,13 @@ The dashboard expects the Web App response from `?type=packingPrintList&includeR
 - Shipping Provider Code
 - Store Code
 - Bin Code
+- order_Date
+- Pendency
 
 Use the global filters to select a bin code and/or store code; both can be active together and update the dashboard and shipment list.
+The source bookmarklet also fetches each shipment's `order_Date`. Apps Script calculates `Pendency` as `TODAY() - order_Date` (in days); use the dashboard's Pendency filter to select a specific age or rows missing an order date.
+
+To enable the new columns in the live sheet, update and redeploy `Do not Push/Code.gs` as a new Apps Script Web App version, then use the updated `Do not Push/packing_print_bookmarklet.txt` while signed in to NEXS. These operational source files are intentionally excluded from the public repository.
 
 For bulk matching, paste one or more shipment/SNXS IDs, bin codes, and/or store codes into the Excel-friendly bulk fields. Separate values by rows, columns, commas, or semicolons. Values in a single field are alternatives; multiple populated fields are combined. The matching row count updates as you type, and **Download matching rows (CSV)** exports all matching records.
 

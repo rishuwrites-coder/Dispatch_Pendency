@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#101c2d">
   <meta name="description" content="Lenskart Live Dispatch Monitor for packing and bin workload at NEXS facility NXS2.">
   <title>Lenskart Live Dispatch Monitor · NXS2</title>
-  <link rel="stylesheet" href="css/dashboard.css?v=bulk-filter-a4884ca">
-  <script src="js/app.js?v=bulk-filter-a4884ca" defer></script>
+  <link rel="stylesheet" href="css/dashboard.css?v=pendency-20261010">
+  <script src="js/app.js?v=pendency-20261010" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -54,6 +54,7 @@
         <div class="filter-controls">
           <label class="filter-field"><span>FILTER BY BIN CODE</span><select id="bin-filter"><option value="">All bin codes</option></select></label>
           <label class="filter-field"><span>FILTER BY STORE CODE</span><select id="store-filter"><option value="">All store codes</option></select></label>
+          <label class="filter-field"><span>FILTER BY PENDENCY</span><select id="pendency-filter"><option value="">All pendency days</option></select></label>
           <label class="filter-field"><span>SHIPPING PROVIDER</span><select id="provider-filter"><option value="">All providers</option></select></label>
           <label class="filter-field filter-search"><span>SHIPMENT SEARCH</span><input id="search-filter" type="search" placeholder="Search package ID…" autocomplete="off"></label>
         </div>
@@ -186,6 +187,8 @@
                 <th><button class="sort-button" data-sort="shippingProviderCode" type="button">SHIPPING PROVIDER CODE <span></span></button></th>
                 <th><button class="sort-button" data-sort="storeCode" type="button">STORE CODE <span></span></button></th>
                 <th><button class="sort-button" data-sort="binCode" type="button">BIN CODE <span></span></button></th>
+                <th><button class="sort-button" data-sort="orderDate" type="button">ORDER_DATE <span></span></button></th>
+                <th><button class="sort-button" data-sort="pendency" type="button">PENDENCY (DAYS) <span></span></button></th>
               </tr></thead>
               <tbody id="shipment-rows"></tbody>
             </table>

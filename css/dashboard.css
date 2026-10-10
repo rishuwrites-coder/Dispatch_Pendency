@@ -67,7 +67,7 @@ h1 { margin-bottom: 7px; font-size: clamp(25px, 2.4vw, 34px); letter-spacing: -.
 .filter-hint { margin-left: 10px; color: var(--subtle); font-size: 10px; }
 .text-button { padding: 4px 0; border: 0; background: transparent; color: var(--accent); font-size: 10px; font-weight: 700; }
 .text-button:hover { text-decoration: underline; }
-.filter-controls { display: grid; grid-template-columns: 1fr 1fr 1fr minmax(220px, 1.35fr); gap: 10px; }
+.filter-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(220px, 1.35fr); gap: 10px; }
 .filter-field { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
 .filter-field select, .filter-field input, .filter-field textarea, .compact-select select, .page-size-label select { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid #304359; border-radius: 4px; background: var(--surface-deep); color: var(--ink); font-size: 11px; letter-spacing: normal; }
 .filter-field textarea { min-height: 58px; padding: 8px 10px; resize: vertical; }
@@ -162,6 +162,7 @@ h1 { margin-bottom: 7px; font-size: clamp(25px, 2.4vw, 34px); letter-spacing: -.
 .data-table tr:hover td:first-child { background: #192c40; }
 .data-table td:nth-child(2) { color: #f0f5fa; font-weight: 600; }
 .data-table td:nth-child(5) { color: #95d9c6; }
+.data-table td:nth-child(6), .data-table td:nth-child(7) { font-variant-numeric: tabular-nums; }
 .data-table td.missing-cell { color: var(--amber); font-style: italic; }
 .data-table th, .data-table td { padding: 0 12px; }
 .data-table input[type="checkbox"] { accent-color: var(--accent-strong); }

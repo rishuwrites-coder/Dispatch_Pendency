@@ -8,8 +8,9 @@
     DONUT_COLORS: ["#52d6b3", "#74aaf7", "#f3bd63", "#cb8ce5", "#f07c76", "#5fc5d8", "#98c66d", "#e39964", "#8291f3", "#d96c9b"]
   };
 
-  const SOURCE_HEADERS = ["Shipping Package ID", "Shipping Provider Code", "Store Code", "Bin Code"];
-  const FIELD_KEYS = ["shippingPackageId", "shippingProviderCode", "storeCode", "binCode"];
+  const SOURCE_HEADERS = ["Shipping Package ID", "Shipping Provider Code", "Store Code", "Bin Code", "order_Date", "Pendency"];
+  const FIELD_KEYS = ["shippingPackageId", "shippingProviderCode", "storeCode", "binCode", "orderDate", "pendency"];
+  const REQUIRED_FIELD_COUNT = 4;
   const BIN_RANGE_GROUPS = [
     { label: "NDD1-NDD175", prefix: "NDD", min: 1, max: 175 },
     { label: "NDD176-NDD355", prefix: "NDD", min: 176, max: 355 },
@@ -25,9 +26,10 @@
     { label: "GP264-GP END", prefix: "GP", min: 264, max: Infinity }
   ];
   const FILTERS = [
-    { key: "bin", label: "BIN", element: "bin-filter", field: "binCode" },
-    { key: "store", label: "STORE", element: "store-filter", field: "storeCode" },
-    { key: "provider", label: "PROVIDER", element: "provider-filter", field: "shippingProviderCode" }
+    { key: "bin", label: "BIN", element: "bin-filter", field: "binCode", placeholder: "All bin codes" },
+    { key: "store", label: "STORE", element: "store-filter", field: "storeCode", placeholder: "All store codes" },
+    { key: "provider", label: "PROVIDER", element: "provider-filter", field: "shippingProviderCode", placeholder: "All providers" },
+    { key: "pendency", label: "PENDENCY", element: "pendency-filter", field: "pendency", placeholder: "All pendency days" }
   ];
   const BULK_FILTERS = [
     { key: "bulkShipmentIds", label: "SHIPMENT / SNXS IDs", element: "bulk-shipment-ids", field: "shippingPackageId" },
@@ -41,7 +43,7 @@
     loadedAt: null,
     connection: "loading",
     error: "",
-    filters: { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "", quality: "", bulkShipmentIds: "", bulkBinCodes: "", bulkStoreCodes: "" },
+    filters: { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", pendency: "", search: "", quality: "", bulkShipmentIds: "", bulkBinCodes: "", bulkStoreCodes: "" },
     sort: { field: "", direction: 1 },
     page: 1,
     pageSize: CONFIG.DEFAULT_PAGE_SIZE,
@@ -105,21 +107,26 @@
           shippingProviderCode: "",
           storeCode: "",
           binCode: "",
+          orderDate: "",
+          pendency: "",
           binPrefix: "Missing bin",
           binGroup: "Missing bin",
           invalid: true
         };
       }
       const hasExpectedShape = Array.isArray(raw)
-        ? raw.length >= FIELD_KEYS.length
-        : FIELD_KEYS.every((key, fieldIndex) =>
+        ? raw.length >= REQUIRED_FIELD_COUNT
+        : FIELD_KEYS.slice(0, REQUIRED_FIELD_COUNT).every((key, fieldIndex) =>
           Object.prototype.hasOwnProperty.call(raw, SOURCE_HEADERS[fieldIndex]) ||
           Object.prototype.hasOwnProperty.call(raw, key));
       const values = FIELD_KEYS.map((key, fieldIndex) => {
+        if (fieldIndex >= REQUIRED_FIELD_COUNT && Array.isArray(raw) && fieldIndex >= raw.length) return "";
         const value = readField(raw, fieldIndex, key);
         return value === null || value === undefined ? "" : String(value).trim();
       });
-      const invalid = !hasExpectedShape || values.every((value) => !value);
+      const pendency = values[5] === "" ? "" : Number(values[5]);
+      const invalidPendency = values[5] !== "" && !Number.isFinite(pendency);
+      const invalid = !hasExpectedShape || values.slice(0, REQUIRED_FIELD_COUNT).every((value) => !value) || invalidPendency;
       if (invalid) invalidCount += 1;
       return {
         rowId: index,
@@ -127,6 +134,8 @@
         shippingProviderCode: values[1],
         storeCode: values[2],
         binCode: values[3],
+        orderDate: values[4],
+        pendency: invalidPendency ? "" : pendency,
         binPrefix: getBinPrefix(values[3]),
         binGroup: getBinGroup(values[3]),
         invalid
@@ -241,7 +250,7 @@
   }
 
   function applyFilters() {
-    const { bin, binPrefix, binGroup, store, provider, search, quality } = state.filters;
+    const { bin, binPrefix, binGroup, store, provider, pendency, search, quality } = state.filters;
     const bulkValues = BULK_FILTERS.map(({ key, field }) => ({
       field,
       values: new Set(parseBulkValues(state.filters[key]).map(normalizeFilterValue))
@@ -260,6 +269,7 @@
       (!binGroup || row.binGroup === binGroup) &&
       (!store || row.storeCode === store) &&
       (!provider || row.shippingProviderCode === provider) &&
+      (!pendency || (pendency === "missing" ? row.pendency === "" : row.pendency === Number(pendency))) &&
       bulkValues.every(({ field, values }) => values.has(normalizeFilterValue(row[field]))) &&
       (!quality || qualityMatches[quality](row)) &&
       (!needle || row.shippingPackageId.toLowerCase().includes(needle))
@@ -268,11 +278,14 @@
       const field = state.sort.field;
       const direction = state.sort.direction;
       rows.sort((a, b) => {
-        const left = a[field] || "";
-        const right = b[field] || "";
-        if (!left && right) return 1;
-        if (left && !right) return -1;
-        return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" }) * direction || a.rowId - b.rowId;
+        const left = a[field] ?? "";
+        const right = b[field] ?? "";
+        if (left === "" && right !== "") return 1;
+        if (left !== "" && right === "") return -1;
+        const comparison = typeof left === "number" && typeof right === "number"
+          ? left - right
+          : String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: "base" });
+        return comparison * direction || a.rowId - b.rowId;
       });
     }
     state.filteredRows = rows;
@@ -282,18 +295,17 @@
   }
 
   function renderFilterOptions() {
-    const options = [
-      ["bin-filter", "All bin codes", "binCode"],
-      ["store-filter", "All store codes", "storeCode"],
-      ["provider-filter", "All providers", "shippingProviderCode"]
-    ];
-    for (const [id, placeholder, field] of options) {
-      const select = $(id);
-      const selected = state.filters[id === "bin-filter" ? "bin" : id === "store-filter" ? "store" : "provider"];
-      const values = [...new Set(state.rows.map((row) => row[field]).filter(Boolean))]
+    for (const { key, element, field, placeholder } of FILTERS) {
+      const select = $(element);
+      const selected = state.filters[key];
+      const values = [...new Set(state.rows.map((row) => row[field]).filter((value) => value !== "" && value !== null && value !== undefined))]
+        .map(String)
         .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
-      select.innerHTML = `<option value="">${placeholder}</option>${values.map((value) =>
-        `<option value="${esc(value)}">${esc(value)}</option>`).join("")}`;
+      const missingOption = key === "pendency" && state.rows.some((row) => row.pendency === "")
+        ? '<option value="missing">Missing order date</option>'
+        : "";
+      select.innerHTML = `<option value="">${placeholder}</option>${missingOption}${values.map((value) =>
+        `<option value="${esc(value)}">${key === "pendency" ? `${esc(value)} day${value === "1" ? "" : "s"}` : esc(value)}</option>`).join("")}`;
       select.value = selected;
     }
   }
@@ -475,12 +487,13 @@
       button.setAttribute("aria-sort", state.sort.field === field ? (state.sort.direction > 0 ? "ascending" : "descending") : "none");
     }
     if (!visible.length) {
-      $("shipment-rows").innerHTML = '<tr><td class="table-empty" colspan="5">No rows to display. Try clearing one or more filters.</td></tr>';
+      $("shipment-rows").innerHTML = '<tr><td class="table-empty" colspan="7">No rows to display. Try clearing one or more filters.</td></tr>';
     } else {
       $("shipment-rows").innerHTML = visible.map((row) => {
         const fields = FIELD_KEYS.map((key) => {
           const value = row[key];
-          return `<td class="${value ? "" : "missing-cell"}">${esc(displayValue(value))}</td>`;
+          const present = value === 0 || (value !== "" && value !== null && value !== undefined);
+          return `<td class="${present ? "" : "missing-cell"}">${esc(present ? value : "Missing")}</td>`;
         });
         return `<tr><td><input type="checkbox" data-select-row="${row.rowId}" aria-label="Select shipment ${esc(row.shippingPackageId || `source row ${row.rowId + 1}`)}" ${state.selected.has(row.rowId) ? "checked" : ""}></td>${fields.join("")}</tr>`;
       }).join("");
@@ -580,10 +593,8 @@
   }
 
   function clearFilters() {
-    state.filters = { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", search: "", quality: "", bulkShipmentIds: "", bulkBinCodes: "", bulkStoreCodes: "" };
-    $("bin-filter").value = "";
-    $("store-filter").value = "";
-    $("provider-filter").value = "";
+    state.filters = { bin: "", binPrefix: "", binGroup: "", store: "", provider: "", pendency: "", search: "", quality: "", bulkShipmentIds: "", bulkBinCodes: "", bulkStoreCodes: "" };
+    for (const { element } of FILTERS) $(element).value = "";
     $("search-filter").value = "";
     for (const { element } of BULK_FILTERS) $(element).value = "";
     state.page = 1;
@@ -630,9 +641,9 @@
   }
 
   function bindEvents() {
-    $("bin-filter").addEventListener("change", (event) => setFilter("bin", event.target.value));
-    $("store-filter").addEventListener("change", (event) => setFilter("store", event.target.value));
-    $("provider-filter").addEventListener("change", (event) => setFilter("provider", event.target.value));
+    for (const { key, element } of FILTERS) {
+      $(element).addEventListener("change", (event) => setFilter(key, event.target.value));
+    }
     $("search-filter").addEventListener("input", (event) => {
       state.filters.search = event.target.value;
       state.page = 1;
